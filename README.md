@@ -30,12 +30,16 @@ Install ffmeg on Your Device
 
 Install Pytorch for faster inference
 
-'''
+```
   # Visit pytorch and choose the proper version for yourself
-  in a command window type nvcc --version to find your cuda version
+  in a command window type
+
+  nvcc --version
+
+  to find your cuda version
   
   https://pytorch.org/get-started/locally/
-'''
+```
 Download Program
 
 ```bash

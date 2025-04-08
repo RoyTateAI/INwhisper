@@ -91,7 +91,3 @@ For English-only applications, the `.en` models tend to perform better, especial
 
 
 
-  
-## Support
-
-For support, email vedgupta@protonmail.com

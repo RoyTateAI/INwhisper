@@ -23,8 +23,18 @@ Install ffmeg on Your Device
   scoop install ffmpeg
 
   # on conda
+  
+  conda create --name Inwhisper python=3.10
   conda install ffmpeg
 ```
+
+Install Pytorch for faster inference
+
+'''
+  # Visit pytorch and choose the proper version for yourself
+  in a command window type nvcc --version to find your cuda version
+  
+  https://pytorch.org/get-started/locally/
 
 Download Program
 
@@ -32,6 +42,8 @@ Download Program
  
   git clone https://github.com/innovatorved/whisper-openai-gradio-implementation.git .
   pip install -r requirements.txt
+
+  pip install  pandas==1.4.2 numpy==1.25.0 moviepy==1.0.3 yt_dlp
 ```
     
 
@@ -58,9 +70,6 @@ There are five model sizes, four with English-only versions, offering speed and 
 For English-only applications, the `.en` models tend to perform better, especially for the `tiny.en` and `base.en` models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.
 
 
-## Screenshots
-
-![Screenshort](https://raw.githubusercontent.com/innovatorved/whisper-openai-gradio-implementation/main/img/screenshort.png)
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
@@ -72,13 +81,11 @@ For English-only applications, the `.en` models tend to perform better, especial
 - [https://openai.com/blog/whisper/](https://openai.com/blog/whisper/)
 
   
-## Authors
+## Original Author
 
 - [Ved Gupta](https://www.github.com/innovatorved)
 
-  
-## 🚀 About Me
-I'm a Developer i will feel the code then write .
+
 
   
 ## Support

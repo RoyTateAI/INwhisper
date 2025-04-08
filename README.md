@@ -21,13 +21,15 @@ Install ffmeg on Your Device
 
   # on Windows using Scoop (https://scoop.sh/)
   scoop install ffmpeg
+
+  # on conda
+  conda install ffmpeg
 ```
 
 Download Program
 
 ```bash
-  mkdir whisper-sppech2txt
-  cd whisper-sppech2txt
+ 
   git clone https://github.com/innovatorved/whisper-openai-gradio-implementation.git .
   pip install -r requirements.txt
 ```

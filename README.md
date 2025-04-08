@@ -35,7 +35,7 @@ Install Pytorch for faster inference
   in a command window type nvcc --version to find your cuda version
   
   https://pytorch.org/get-started/locally/
-
+'''
 Download Program
 
 ```bash

@@ -44,7 +44,7 @@ Download Program
 
 ```bash
  
-  git clone https://github.com/innovatorved/whisper-openai-gradio-implementation.git (https://github.com/RoyTateAI/INwhisper.git)
+  git clone https://github.com/RoyTateAI/INwhisper.git
   pip install -r requirements.txt
 
   pip install  pandas==1.4.2 numpy==1.25.0 moviepy==1.0.3 yt_dlp

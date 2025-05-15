@@ -7,8 +7,11 @@ import torch
 import subprocess
 import shutil
 import sys
+import tempfile
+import time
 from yt_dlp import YoutubeDL
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
+import numpy as np
 
 # Configuration settings
 PORT = 7890  # Define port for Gradio server
@@ -26,7 +29,7 @@ def check_ffmpeg():
 
 if not check_ffmpeg():
     print("INFO: FFmpeg is not installed or not found in PATH.")
-    print("Subtitle burning feature has been removed.")
+    print("Some features may have limited functionality.")
 
 # Create required folders if they don't exist
 for folder in [BATCH_FOLDER, VIDEO_FOLDER, SUBTITLE_FOLDER]:
@@ -53,24 +56,127 @@ def extract_audio_from_video(video_path, output_audio_path="temp_audio.wav"):
 
 def clean_temp_file(file_path):
     """Safely remove a temporary file if it exists"""
-    if os.path.exists(file_path):
+    if file_path and os.path.exists(file_path):
         try:
             os.remove(file_path)
         except Exception as e:
             print(f"Warning: Failed to delete temporary file {file_path}: {str(e)}")
 
+def get_audio_duration(audio_path):
+    """Get duration of audio file in seconds"""
+    try:
+        with AudioFileClip(audio_path) as audio:
+            return audio.duration
+    except Exception as e:
+        print(f"Warning: Failed to get audio duration: {str(e)}")
+        return 0
+
 def transcribe_file_with_option(file_path, timestamps=False):
     """Transcribe a file with or without timestamps"""
-    result = model.transcribe(file_path)
-    language = result["language"]
-
-    if timestamps:
-        segments_text = "\n".join(
-            [f"[{seg['start']:.2f} - {seg['end']:.2f}] {seg['text']}" for seg in result['segments']]
-        )
-        return language, segments_text, result
+    # Check if file is very long (more than 10 minutes)
+    duration = get_audio_duration(file_path)
+    
+    # For longer files, use chunked processing
+    if duration > 600:  # 10 minutes
+        return transcribe_long_file(file_path, timestamps)
     else:
-        return language, result["text"], result
+        # Use standard processing for shorter files
+        result = model.transcribe(file_path)
+        language = result["language"]
+
+        if timestamps:
+            segments_text = "\n".join(
+                [f"[{seg['start']:.2f} - {seg['end']:.2f}] {seg['text']}" for seg in result['segments']]
+            )
+            return language, segments_text, result
+        else:
+            return language, result["text"], result
+
+def transcribe_long_file(file_path, timestamps=False):
+    """Process longer files in chunks to improve transcription quality"""
+    try:
+        # Load audio file
+        print(f"Processing long file: {file_path}")
+        with AudioFileClip(file_path) as audio:
+            duration = audio.duration
+            
+        chunk_size = 10 * 60  # 10 minutes in seconds
+        overlap = 30  # 30 seconds overlap between chunks
+        
+        all_segments = []
+        full_text = []
+        
+        # Process in chunks
+        for start_time in range(0, int(duration), chunk_size - overlap):
+            end_time = min(start_time + chunk_size, duration)
+            if end_time - start_time < 30:  # Skip very short final segments
+                break
+                
+            # Extract chunk to temporary file
+            temp_chunk = tempfile.NamedTemporaryFile(suffix='.wav', delete=False).name
+            
+            try:
+                # Extract chunk of audio
+                with AudioFileClip(file_path) as audio:
+                    chunk = audio.subclip(start_time, end_time)
+                    chunk.write_audiofile(temp_chunk, codec='pcm_s16le', logger=None)
+                
+                # Process chunk
+                print(f"Processing chunk {start_time/60:.1f}-{end_time/60:.1f} minutes")
+                result = model.transcribe(temp_chunk)
+                
+                # Adjust segment timestamps
+                for segment in result["segments"]:
+                    # Only add segments that start in this chunk's unique time range
+                    # (avoiding duplicating content in the overlap)
+                    if start_time == 0 or segment["start"] + start_time >= start_time + overlap/2:
+                        segment["start"] += start_time
+                        segment["end"] += start_time
+                        all_segments.append(segment)
+                
+                # Add to full text
+                full_text.append(result["text"])
+                
+            finally:
+                clean_temp_file(temp_chunk)
+        
+        # Sort segments by start time (important for proper SRT generation)
+        all_segments.sort(key=lambda x: x["start"])
+        
+        # Renumber segments
+        for i, segment in enumerate(all_segments):
+            segment["id"] = i
+        
+        # Create result object similar to whisper's output
+        combined_result = {
+            "text": " ".join(full_text),
+            "segments": all_segments,
+            "language": result["language"]  # Use language from last chunk
+        }
+        
+        language = combined_result["language"]
+        
+        if timestamps:
+            segments_text = "\n".join(
+                [f"[{seg['start']:.2f} - {seg['end']:.2f}] {seg['text']}" for seg in combined_result['segments']]
+            )
+            return language, segments_text, combined_result
+        else:
+            return language, combined_result["text"], combined_result
+            
+    except Exception as e:
+        print(f"Error in chunked processing: {str(e)}")
+        # Fall back to standard processing if chunked fails
+        result = model.transcribe(file_path)
+        language = result["language"]
+        
+        if timestamps:
+            segments_text = "\n".join(
+                [f"[{seg['start']:.2f} - {seg['end']:.2f}] {seg['text']}" for seg in result['segments']]
+            )
+            return language, segments_text, result
+        else:
+            return language, result["text"], result
 
 # --- Mode 1: Single File ---
 def transcribe_single(file, timestamps):
@@ -324,6 +430,8 @@ with gr.Blocks() as demo:
             
             **How to use:**
             1. Enter the folder path containing your audio/video files (or use default "batch_folder")
+               - For Windows full paths (e.g., C:\\path\\to\\folder), make sure the path is correct
+               - You can copy/paste paths from Windows Explorer
             2. Select options:
                - Include timestamps: Add time markers to transcriptions
                - Create SRT files: Generate subtitle files for all audio/video files
@@ -375,6 +483,17 @@ with gr.Blocks() as demo:
             - **subtitles:** SRT files created in the Subtitle Tools tab are saved here
             
             All these folders are created automatically in the same directory where you run the application.
+            
+            ---
+            
+            ## Notes on Long Files
+            
+            When processing long videos or audio files (over 10 minutes):
+            
+            - The application automatically uses chunk-based processing
+            - This improves transcription quality for longer content
+            - Processing takes longer but produces better results
+            - Long videos (over 30 minutes) may take considerable time to process
             """)
 
         with gr.Tab("Single File"):

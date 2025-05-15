@@ -6,6 +6,8 @@ Whisper is an automatic speech recognition (ASR) system Gradio Web UI Implementa
 
 ## Installation
 
+
+
 Install ffmeg on Your Device
 
 ```bash
@@ -23,7 +25,7 @@ Install ffmeg on Your Device
   scoop install ffmpeg
 
   # on conda
-  
+  open conda terminal 
   conda create --name Inwhisper python=3.10
   conda install ffmpeg
 ```
@@ -60,7 +62,11 @@ Run Program
 
 ## Available models and languages ([Credit](https://github.com/innovatorved/whisper-openai-gradio-implementation/blob/main/README.md))
 
-There are five model sizes, four with English-only versions, offering speed and accuracy tradeoffs. Below are the names of the available models and their approximate memory requirements and relative speed. 
+do not use any english only models with this implementation
+on line 40 of the python file, you can specify the model size, larger models may be better, especially for unclear speech but take longer to run. The current default is "small"
+
+
+ 
 
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
@@ -71,7 +77,6 @@ There are five model sizes, four with English-only versions, offering speed and 
 | medium |   769 M    |    `medium.en`     |      `medium`      |     ~5 GB     |      ~2x       |
 | large  |   1550 M   |        N/A         |      `large`       |    ~10 GB     |       1x       |
 
-For English-only applications, the `.en` models tend to perform better, especially for the `tiny.en` and `base.en` models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.
 
 
 ## License

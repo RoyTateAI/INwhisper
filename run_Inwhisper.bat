@@ -2,6 +2,7 @@
 
 call conda activate inwhisper
 cd Inwhisper
-call python app.py
+call python stablebatchsrtv2.py
+
 
 @pause
